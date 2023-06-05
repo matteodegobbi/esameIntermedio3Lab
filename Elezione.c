@@ -33,8 +33,8 @@ OR Un valore < 0, se a <b;
 */
 typedef int (*fCompare)(const void*, const void*);
 
-/*Funzione che compara due Liste (ricevendo un puntatore a un puntatore a una Lista) tramite il nResto
-Se $a ha un nResto maggiore viene ritornato 1, se $b ha un nResto maggiore -1, altrimenti 0
+/*Funzione che compara due Liste (ricevendo un puntatore a un puntatore a una Lista) tramite il nResto.
+Se $a ha un nResto maggiore viene ritornato 1, se $b ha un nResto maggiore -1, altrimenti 0.
 IP a,b due Lista** da confrontare tramite il resto
 OR risultato del comparison con le regole specificate da fCompare
 
@@ -42,13 +42,9 @@ Attenzione in questo compare non e' sufficiente restituire la differenza dei due
 implicito da double a int crea problemi nel caso di valori della differenza minori di 1 in valore assoluto
 */
 int compareListePtByResto(const Lista** a, const Lista** b) {
-    if (((*a)->nResto) > ((*b)->nResto)) {
-        return 1;
-    } else if (((*a)->nResto) < ((*b)->nResto)) {
-        return -1;
-    } else {
-        return 0;
-    }
+    if (((*a)->nResto) > ((*b)->nResto)) return 1;
+    if (((*a)->nResto) < ((*b)->nResto)) return -1;
+    return 0;
 } /*compareListePtByResto*/
 
 /* Scambia il contenuto di due variabili, un byte per volta.
@@ -129,29 +125,25 @@ int scanInt(const char etiche[]) {
 /*Si occupa di allocare i campi della Lista* $li e di leggere da tastiera i dati necessari per
  inizializzarli
  OP li la Lista* di cui dobbiamo allocare il campo nome e inizializzare i campi nome e nVoti
+ OP bufferNomeLista buffer di appoggio che passiamo tramite parametro cosi viene allocato in allocateScanElezione solo una volta
+
+ Usando il buffer di appoggio non sprechiamo memoria sovrallocando i nomi.
  */
-void allocateScanLista(Lista* li) {
-    li->nome = malloc(MAX_LUNGHEZZA_NOME + 1);
-    assert(li->nome);
+void allocateScanLista(Lista* li,char bufferNomeLista[]) {
     printf("%s\n", "Nome lista (max 10 car):");
-    scanf("%s", (li->nome));
-    /* questo assert puo'essere utile per controllare di aver inserito dati validi durante il debug*/
-    /*assert(strlen(li->nome)<=10);*/
-    /*li->nome = realloc(li->nome, strlen(li->nome) + 1);*/ assert(li->nome);
-    /*rialloco per occupare meno memoria possibile come richiesto dalla consegna*/
-
-    /*Attenzione se fallisce l'assert viene liberata tutta la memoria ma se si toglie assert bisogna liberare
-    il puntatore passato alla realloc e quindi in quel caso non potremmo assegnare a li->nome il risultato
-    della realloc prima di controllare se e' NULL*/
-
+    scanf("%s", (bufferNomeLista));
+    li->nome=malloc(strlen(bufferNomeLista)+1);
+    assert(li->nome);
+    strcpy(li->nome,bufferNomeLista);
     li->nVoti = scanInt("nVoti:\n");
 } /*allocateScanLista*/
 /*Si occupa di allocare e inizializzare i campi di $ele
-OP ele la struttura Elezione di cui dobbiamo allocare i campi data e liste e inizializzare data, liste, nListe
-e nConsiglieri
+OP ele la struttura Elezione di cui dobbiamo allocare i campi: data e liste, e inizializzare i campi: data,
+liste, nListe e nConsiglieri
 */
 void allocateScanElezione(Elezione* ele) {
     int i;
+    char bufferNomeLista[MAX_LUNGHEZZA_NOME+1];/*creato automaticamente solo una volta per risparmiare memoria*/
     ele->data = malloc(sizeof(Data));
     assert(ele->data);
     ele->data->giorno = scanInt("Giorno elezione:\n");
@@ -161,12 +153,14 @@ void allocateScanElezione(Elezione* ele) {
     ele->nListe = scanInt("N Liste presentate:\n");
     ele->liste = malloc(sizeof(Lista) * ele->nListe);
     assert(ele->liste);
+    
     for (i = 0; i < ele->nListe; i++) {
-        allocateScanLista(ele->liste + i);
+        allocateScanLista(ele->liste + i,bufferNomeLista);
         /*printf("info:%d\n",ele->liste+i);*/
     }
 }
 /*Esegue il print dei campi di $ele disponibili subito dopo la lettura
+IP ele e' la elezione di cui vogliamo stampare le informazioni (assunte inizializzate precedentemente)
 OV La data della votazione nel formato DD/MM/YYYY, il numero di consiglieri da eleggere e tutte le liste
 candidate nel formato LISTA nome. Voti:nVoti.
 */
@@ -178,7 +172,7 @@ void printaDopoLettura(const Elezione* ele) {
     for (i = 0; i < ele->nListe; i++) {
         printf("LISTA %s. Voti: %d.\n", ele->liste[i].nome, ele->liste[i].nVoti);
     }
-}
+} /*printaDopoLettura*/
 /*Calcola i risultati delle elezioni con il sistema proporzionale a liste bloccate, questa funzione modifica i
   campi degli elementi di $ele->liste
   IOP ele la struttura Elezione di cui dobbiamo calcolare i risultati, che verranno poi stampati dalla
@@ -211,10 +205,13 @@ void trovaRisultati(Elezione* ele) {
         }
         free(copiaIndirizziListe);
     }
-}/*trovaRisultati*/
+} /*trovaRisultati*/
 
-/*Stampa i risultati delle elezioni calcolati dalla funzione trovaRisultati con il formato specificato dalla consegna
-  IP ele la Elezione* su cui abbiamo precedentemente calcolato i risultati
+/*Stampa i risultati delle elezioni calcolati dalla funzione trovaRisultati con il formato specificato dalla
+  consegna
+  IP ele la Elezione* su cui abbiamo precedentemente calcolato i risultati tramite la funzione trovaRisultati
+  OV I risultati della elezione nel formato LISTA nome. Voti: nVoti. Numero di consiglieri attribuiti:
+  nConsAttribuiti
 */
 void stampaRisultati(const Elezione* ele) {
     int i;
